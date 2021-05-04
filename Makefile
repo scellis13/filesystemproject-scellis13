@@ -34,10 +34,10 @@
 #
 
 
-ROOTNAME=fsLowDemo
+ROOTNAME=milestone_one
 HW=
 FOPTION=
-RUNOPTIONS=SampleVolume 10000000 512
+RUNOPTIONS=SampleVolume 5120 512
 CC=gcc
 CFLAGS= -g -I.
 LIBS =pthread
