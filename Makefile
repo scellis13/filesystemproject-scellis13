@@ -37,7 +37,7 @@
 ROOTNAME=milestone_one
 HW=
 FOPTION=
-RUNOPTIONS=SampleVolume 5120 512
+RUNOPTIONS=SampleVolume 99840 512
 CC=gcc
 CFLAGS= -g -I.
 LIBS =pthread
