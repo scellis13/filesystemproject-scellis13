@@ -34,7 +34,7 @@
 #
 
 
-ROOTNAME=milestone_one
+ROOTNAME=vol_struc
 HW=
 FOPTION=
 RUNOPTIONS=SampleVolume 1000000 512
