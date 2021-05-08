@@ -11,12 +11,7 @@
 #include <time.h>
 #include "fsLow.h"
 #include "mfs.h"
-//Init VCB
-//	Logical Block - 0 - Contains Info to keep track of the volume
-//		Check Magic Number to see if i've been initialized before or not
-//			If it is mine, no need to init
-//			If it isn't mine, free space
-//
+
 #define MAGIC_NUMBER 0x92073783 //STUDENT_ID minus last digit
 
 typedef struct freespace {
@@ -64,7 +59,7 @@ int main (int argc, char *argv[])
 	char * filename;
 	uint64_t volumeSize;
 	uint64_t blockSize;
-    int retVal;
+    int retval;
     
 	if (argc > 3)
 		{
@@ -77,9 +72,14 @@ int main (int argc, char *argv[])
 		printf ("Usage: fsLowDriver volumeFileName volumeSize blockSize\n");
 		return -1;
 		}
+
+	if (volumeSize < 5120) {
+		printf("main: Invalid volume size listed. Please choose a size Greater ( > ) than 5120 bytes.");
+		return -1;
+	}
 		
-	retVal = startPartitionSystem (filename, &volumeSize, &blockSize);	
-	printf("Opened %s, Volume Size: %llu;  BlockSize: %llu; Return %d\n", filename, (ull_t)volumeSize, (ull_t)blockSize, retVal);
+	retval = startPartitionSystem (filename, &volumeSize, &blockSize);	
+	printf("Opened %s, Volume Size: %llu;  BlockSize: %llu; Return %d\n", filename, (ull_t)volumeSize, (ull_t)blockSize, retval);
 	
  	myVCB_ptr ptr;
  	ptr = malloc(blockSize);
@@ -87,7 +87,7 @@ int main (int argc, char *argv[])
 
 
 	if(ptr->magic_number == MAGIC_NUMBER){
-
+		
 		//Testing VCB Variables
 		printf("\n***Volume already formatted.***");
 
@@ -107,9 +107,9 @@ int main (int argc, char *argv[])
 			printf("\n\tVolume Name: %s", ptr->volume_name);
 
 		printf("\n\nTesting Freespace Struct Variables:");
-
+		
 			freespace_ptr frsp_ptr;
-			frsp_ptr = malloc(ptr->lba_frsp_blocks);
+			frsp_ptr = malloc(ptr->lba_frsp_blocks * ptr->block_size);
 			LBAread(frsp_ptr, ptr->lba_frsp_blocks, ptr->lba_frsp);
 
 			printf("\n\tFreespace Blocks Free: %d", frsp_ptr->blocks_free);
@@ -129,7 +129,7 @@ int main (int argc, char *argv[])
 			printf("\n\n\tTesting Directory Entry Struct List:");
 
 				directoryEntry * de_list;
-				de_list = malloc(sizeof(directoryEntry)*frsp_ptr->total_directory_entries);
+				de_list = malloc(ptr->lba_dirnodes_blocks * ptr->block_size);
 				LBAread(de_list, ptr->lba_dirnodes_blocks, ptr->lba_dirnodes);
 
 				for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
@@ -165,14 +165,14 @@ int main (int argc, char *argv[])
 	printf("\n\n***End of main***\n");
 	free(ptr);
 	ptr = NULL;
+
+
+	//closePartitionSystem();
+
 }
 
 
 void init_freespace(myVCB_ptr ptr){
-	//int blocks_free;
-	//int total_directory_entries;
-	//int free_blocks_map[];
-
 	/* Variables needed from ptr */
 
 	int block_size = ptr->block_size;
@@ -189,23 +189,23 @@ void init_freespace(myVCB_ptr ptr){
 	int wasted_blocks = blocks_requested;
 
 	while(wasted_blocks > 1) {
-		//printf("\n\nCurrent Sum of Allocated Blocks: %d", sum_of_blocks);
-		//printf("\n\nTotal Blocks Requested: %d", blocks_requested);
-		//printf("\n\tBlocks Requested: %d", blocks_requested);
+		printf("\n\nCurrent Sum of Allocated Blocks: %d", sum_of_blocks);
+		printf("\n\nTotal Blocks Requested: %d", blocks_requested);
+		printf("\n\tBlocks Requested: %d", blocks_requested);
 		double size_adjustment = (double) sizeof(directoryEntry)/(block_size);
-		//printf("\n\tSize Adjustment: %f", size_adjustment);
+		printf("\n\tSize Adjustment: %f", size_adjustment);
 
 		int adjusted_block_amount = blocks_requested - (size_adjustment * blocks_requested) - 1;
-		//printf("\n\tAdjusted Blocks Requested: %d", adjusted_block_amount);
+		printf("\n\tAdjusted Blocks Requested: %d", adjusted_block_amount);
 
 		int total_setup_blocks = get_setup_blocks(ptr, adjusted_block_amount, block_size);
 
 		int total_blocks_used = total_setup_blocks + adjusted_block_amount;
-		//printf("\n\nTotal Blocks Used: %d", total_blocks_used);
+		printf("\n\nTotal Blocks Used: %d", total_blocks_used);
 
 		sum_of_blocks = sum_of_blocks + adjusted_block_amount;
 		wasted_blocks = blocks_requested - total_blocks_used;
-		//printf("\n\nWasted Blocks: %d", wasted_blocks);
+		printf("\n\nWasted Blocks: %d", wasted_blocks);
 		blocks_requested = wasted_blocks;
 	
 	}
@@ -234,7 +234,6 @@ void init_freespace(myVCB_ptr ptr){
 		(frsp_ptr)->data_blocks_map[i] = malloc(sizeof(int));
 		(frsp_ptr)->data_blocks_map[i] = 0; //0 is free, 1 is used
 	}
-	//void * buffer = malloc(512);
 
 
 	printf("\n\nTotal Elements Stored So Far:");
@@ -251,11 +250,7 @@ void init_freespace(myVCB_ptr ptr){
 
 void init_rtdir(myVCB_ptr ptr){
 	printf("\n\ninit_rtdir: Initializing Root Directory.");
-
 	create_directory_entry(ptr, ".", 512, 0);
-	create_directory_entry(ptr, "New Folder", 13423, 0);
-	create_directory_entry(ptr, "File.txt", 1024, 1);
-	create_directory_entry(ptr, "New File.txt", 10000, 1);
 }
 
 int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type){
@@ -353,26 +348,26 @@ int get_setup_blocks(myVCB_ptr ptr, int blocks_requested, int block_size){
 		int bitmapArr[blocks_requested];
 		int size_bitmap = sizeof(bitmapArr);
 		int total_freespace_bytes = sizeof(freespace) + size_bitmap;
-		// printf("\n\tSize of Freespace Struct (bytes): %d", freespace_bytes);
-		// printf("\n\tSize of Bitmap (bytes): %d", size_bitmap);
-		// printf("\n\tTotal Size of Freespace (bytes): %d", total_freespace_bytes);
+		printf("\n\tSize of Freespace Struct (bytes): %d", freespace_bytes);
+		printf("\n\tSize of Bitmap (bytes): %d", size_bitmap);
+		printf("\n\tTotal Size of Freespace (bytes): %d", total_freespace_bytes);
 		int total_freespace_blocks = ceil( ((double) total_freespace_bytes)/block_size );
 		ptr->lba_frsp_blocks = total_freespace_blocks;
 		ptr->lba_dirnodes = 1 + total_freespace_blocks;//0 VCB, 1 FS + FS_BLOCKS
 		printf("\n\tTotal Size of Freespace (blocks): %d", total_freespace_blocks);
 
-		//printf("\n\n\tCalculating Required Blocks for Directory Entry List:");
+		printf("\n\n\tCalculating Required Blocks for Directory Entry List:");
 		int entry_bytes = sizeof(directoryEntry);
-		//printf("\n\tSize of Directory Entry Struct (bytes): %d", entry_bytes);
+		printf("\n\tSize of Directory Entry Struct (bytes): %d", entry_bytes);
 		int entry_list_bytes = entry_bytes * blocks_requested;
-		//printf("\n\tSize of Directory Entry List (bytes): %d", entry_list_bytes);
+		printf("\n\tSize of Directory Entry List (bytes): %d", entry_list_bytes);
 		int total_entry_list_blocks = ceil(((double)entry_list_bytes) / block_size);
 		ptr->lba_dirnodes_blocks = total_entry_list_blocks;
 		ptr->lba_data_offset = ptr->lba_dirnodes + total_entry_list_blocks;
-		//printf("\n\tSize of Directory Entry List (blocks): %d", total_entry_list_blocks);
+		printf("\n\tSize of Directory Entry List (blocks): %d", total_entry_list_blocks);
 
 		int total_setup_blocks = total_freespace_blocks + total_entry_list_blocks + 1;
-		//printf("\n\nTotal Blocks Required for Initialization: %d", total_setup_blocks);
+		printf("\n\nTotal Blocks Required for Initialization: %d", total_setup_blocks);
 
 		return total_setup_blocks;
 }
