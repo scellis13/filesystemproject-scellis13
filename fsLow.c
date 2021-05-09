@@ -199,7 +199,7 @@ int startPartitionSystem (char * filename, uint64_t * volSize, uint64_t * blockS
 	return retVal;
 	}
 
-int closePartitionSystem ()
+int ccccccccccccc ()
 	{
 	fsync(partInfop->fd);
 	close (partInfop->fd);

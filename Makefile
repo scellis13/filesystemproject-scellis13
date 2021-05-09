@@ -34,7 +34,7 @@
 #
 
 
-ROOTNAME=vol_struc
+ROOTNAME=fsshell
 HW=
 FOPTION=
 RUNOPTIONS=SampleVolume 1000000 512
