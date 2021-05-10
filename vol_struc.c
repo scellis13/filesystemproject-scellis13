@@ -14,124 +14,6 @@
 #include "vol_struc.h"
 #include "vol_func.h"
 
-// int main (int argc, char *argv[])
-// 	{	
-
-// 	char * filename;
-// 	uint64_t volumeSize;
-// 	uint64_t blockSize;
-//     int retval;
-    
-// 	if (argc > 3)
-// 		{
-// 		filename = argv[1];
-// 		volumeSize = atoll (argv[2]);
-// 		blockSize = atoll (argv[3]);
-// 		}
-// 	else
-// 		{
-// 		// printf ("Usage: fsLowDriver volumeFileName volumeSize blockSize\n");
-// 		return -1;
-// 		}
-
-// 	if (volumeSize < 5120) {
-// 		// printf("main: Invalid volume size listed. Please choose a size Greater ( > ) than 5120 bytes.");
-// 		return -1;
-// 	}
-		
-// 	retval = startPartitionSystem (filename, &volumeSize, &blockSize);	
-// 	// printf("Opened %s, Volume Size: %llu;  BlockSize: %llu; Return %d\n", filename, (ull_t)volumeSize, (ull_t)blockSize, retval);
-	
-//  	myVCB_ptr ptr;
-//  	ptr = malloc(blockSize);
-//  	LBAread(ptr, 1, 0);
-
-
-// 	if(ptr->magic_number == MAGIC_NUMBER){
-		
-// 		//Testing VCB Variables
-// 		// printf("\n***Volume already formatted.***");
-
-// 		// printf("\n\nTesting Volume Control Struct Variables:");
-// 			// printf("\n\tVolume Size: %d", ptr->volumeSize);
-// 			// printf("\n\tBlock Size: %d", ptr->block_size);
-// 			// printf("\n\tNum of Vol. Blocks: %d", ptr->num_of_blocks);
-// 			// printf("\n\tTotal Data Blocks: %d", ptr->total_data_blocks);
-// 			// printf("\n\tMagic # Pointer (%d) == Magic # File (%d)", ptr->magic_number, MAGIC_NUMBER);
-// 			// printf("\n\tFreespace Starting Block Position: %d", ptr->lba_frsp);
-// 			// printf("\n\tFreespace Total Blocks: %d", ptr->lba_frsp_blocks);
-// 			// printf("\n\tDirectory Entry List Starting Block Position: %d", ptr->lba_dirnodes);
-// 			// printf("\n\tDirectory Entry List Total Blocks: %d", ptr->lba_dirnodes_blocks);
-// 			// printf("\n\tData Blocks Starting Block Position (Offset): %d", ptr->lba_data_offset);
-// 			// printf("\n\tRoot Directory Block ID: %d", ptr->lba_rtdir);
-// 			// printf("\n\tCurrent Directory Block ID: %d", ptr->lba_curdir);
-// 			// printf("\n\tVolume Name: %s", ptr->volume_name);
-
-// 		// printf("\n\nTesting Freespace Struct Variables:");
-		
-// 			freespace_ptr frsp_ptr;
-// 			frsp_ptr = malloc(ptr->lba_frsp_blocks * ptr->block_size);
-// 			LBAread(frsp_ptr, ptr->lba_frsp_blocks, ptr->lba_frsp);
-
-// 			// printf("\n\tFreespace Blocks Free: %d", frsp_ptr->blocks_free);
-// 			// printf("\n\tFreespace Total Directory Entries: %d", frsp_ptr->total_directory_entries);
-// 			// printf("\n\tFreespace Bitmap:");
-// 			// printf("\n\t[");
-// 			int loopcount = 1;
-// 			for(int i = 0; i < ptr->total_data_blocks; i++){
-// 				// printf(" %04d:%d ", i, (frsp_ptr->data_blocks_map)[i]);
-// 				// if((loopcount % 10 == 0)) printf("\n\t ");
-// 				loopcount++;
-// 			}
-// 			// printf(" ]");
-
-			
-
-// 			// printf("\n\n\tTesting Directory Entry Struct List:");
-
-// 				directoryEntry * de_list;
-// 				de_list = malloc(ptr->lba_dirnodes_blocks * ptr->block_size);
-// 				LBAread(de_list, ptr->lba_dirnodes_blocks, ptr->lba_dirnodes);
-
-// 				for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
-// 					// printf("\n\t\tDirectory Entry #%d, listing Metadata:", i);
-// 					// printf("\n\t\t\tBlock ID: %d", de_list[i].block_id);
-// 					// printf("\n\t\t\tData Block Position: %d", de_list[i].block_position);
-// 					// printf("\n\t\t\tTotal Blocks Allocated: %d", de_list[i].total_blocks_allocated);
-// 					// printf("\n\t\t\tParent ID: %d", de_list[i].parent_id);
-// 					// printf("\n\t\t\tEntry Type: %d", de_list[i].entry_type);
-// 					// printf("\n\t\t\tFile Name: %s", de_list[i].fileName);
-// 				}
-
-// 				free(de_list);
-// 				de_list = NULL;
-
-// 			free(frsp_ptr);
-// 			frsp_ptr = NULL;
-
-
-// 	} else {
-// 			strcpy(ptr->volume_name,argv[1]);
-// 			ptr->magic_number = MAGIC_NUMBER;
-// 			ptr->volumeSize = volumeSize;
-// 			ptr->block_size = blockSize;
-// 			ptr->lba_frsp = 1;			
-// 			ptr->lba_curdir = 0;		
-
-// 			init_freespace(ptr);
-
-// 			init_rtdir(ptr);
-
-// 			LBAwrite(ptr, 1, 0);	
-// 	}
-// 	// printf("\n\n***End of main***\n");
-// 	free(ptr);
-// 	ptr = NULL;
-
-
-// 	//closePartitionSystem();
-
-// }
 int create_volume(myVCB_ptr ptr, char * filename, int volumeSize, int blockSize){
 	int retVal = -1;
 	strcpy(ptr->volume_name, filename);
@@ -229,7 +111,7 @@ void init_freespace(myVCB_ptr ptr){
 
 void init_rtdir(myVCB_ptr ptr){
 	// printf("\n\ninit_rtdir: Initializing Root Directory.");
-	create_directory_entry(ptr, ".", 512, 0);
+	create_directory_entry(ptr, "~", 512, 0);
 }
 
 int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type) {
@@ -309,7 +191,6 @@ int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int 
 
 	frsp_ptr->total_directory_entries = frsp_ptr->total_directory_entries + 1;
 	LBAwrite(frsp_ptr, ptr->lba_frsp_blocks, ptr->lba_frsp);
-
 
 	free(frsp_ptr);
 	free(de_list);

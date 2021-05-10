@@ -15,7 +15,7 @@
 #include "vol_func.h"
 
 void list_dir(myVCB_ptr ptr) {
-	printf(".\t..\t");
+	printf("\033[1;34m.\t..\t");
 	freespace_ptr frsp_ptr;
 	frsp_ptr = malloc(ptr->lba_frsp_blocks * ptr->block_size);
 	LBAread(frsp_ptr, ptr->lba_frsp_blocks, ptr->lba_frsp);
@@ -26,7 +26,11 @@ void list_dir(myVCB_ptr ptr) {
 
 	for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
 		if((de_list[i].parent_id == ptr->lba_curdir) && (de_list[i].block_id != ptr->lba_rtdir)){
-			printf("%d.%s\t", i, de_list[i].fileName);
+			if(de_list[i].entry_type == 0) {
+				printf("\033[1;34m%s\t", de_list[i].fileName);
+			} else {
+				printf("\033[0m%s\t", de_list[i].fileName);
+			}
 		}
 	}
 	free(de_list);
@@ -56,12 +60,34 @@ void print_dir(myVCB_ptr ptr) {
 		de_list = malloc(ptr->lba_dirnodes_blocks * ptr->block_size);
 		LBAread(de_list, ptr->lba_dirnodes_blocks, ptr->lba_dirnodes);
 	
-		for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
-			if(ptr->lba_curdir == de_list[i].block_id) {
-				printf("%s", de_list[i].fileName);
-				break;
+		const char * file_names[frsp_ptr->total_directory_entries * 55];
+		int num_files = 0;
+
+		int curdir = ptr->lba_curdir;
+		int parent = -1;
+		// for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
+		// 	if(ptr->lba_curdir == de_list[i].block_id) {
+		// 		printf("%s", de_list[i].fileName);
+		// 		file_names[num_files] = de_list[i].fileName;
+		// 		num_files++;
+		// 		parent = de_list[i].parent_id;
+		// 		break;
+		// 	}
+		// }
+		for(int i = (frsp_ptr->total_directory_entries); i >= 0; i--){
+			if(de_list[i].block_id == curdir){
+				file_names[num_files] = de_list[i].fileName;
+				num_files++;
+				curdir = de_list[i].parent_id;
 			}
 		}
+
+		for(int i = num_files-1; i >= 0; i--){
+			if(i == 0) { printf("%s", file_names[i]); break;}
+			printf("%s/", file_names[i]);
+		}
+
+		
 	
 		free(de_list);
 		de_list = NULL;
@@ -94,8 +120,6 @@ void print_storage_map(myVCB_ptr ptr, int break_point) {
 
 void change_dir(myVCB_ptr ptr, char * dir_name) {
 
-
-
 	int found = 0;
 
 	freespace_ptr frsp_ptr;
@@ -108,7 +132,7 @@ void change_dir(myVCB_ptr ptr, char * dir_name) {
 
 	
 
-	if (strcmp(dir_name, "") == 0) {
+	if (strcmp(dir_name, "~") == 0) {
 		ptr->lba_curdir = ptr->lba_rtdir;
 		found = 1;
 	} else if (strcmp(dir_name, "..") == 0) {

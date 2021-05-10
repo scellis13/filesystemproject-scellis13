@@ -42,7 +42,8 @@ int main(int argc, char *argv[]) {
 		
 	retval = startPartitionSystem (filename, &volumeSize, &blockSize);	
 	printf("Opened %s, Volume Size: %llu;  BlockSize: %llu; Return %d\n", filename, (ull_t)volumeSize, (ull_t)blockSize, retval);
-	
+	printf("\033[31mDaemon Demon File System starting...\n");
+
  	myVCB_ptr ptr;
  	ptr = malloc(blockSize);
  	LBAread(ptr, 1, 0);
@@ -54,12 +55,16 @@ int main(int argc, char *argv[]) {
 
 	char user_command[100];
 	char buffer[100];
-	char firstCommand[5];
+	char firstCommand[6];
 	char secondCommand[55];
 
     while(1) {
     	
-        printf("user@daemon-demons:~$ ");
+        printf("\033[1;32muser@daemon-demons");
+        printf("\033[0m:");
+        printf("\033[1;34m");
+        print_dir(ptr);
+        printf("\033[0m$ ");
         gets(user_command);
         if(strcasecmp(user_command, "exit") == 0) break;
         memcpy(buffer, user_command, sizeof(buffer));
@@ -84,12 +89,11 @@ int main(int argc, char *argv[]) {
 	        	}
 	        }
 
+	        if(strcasecmp(firstCommand, "mkdir") == 0) { 
+	        	make_dir(ptr, secondCommand); 
+	        	continue; 
+	        }
 
-	        // if(strcasecmp(firstCommand, "mkdir") == 0) { 
-	        // 	make_dir(ptr, secondCommand); 
-	        // 	continue; 
-	        // }
-	        
 	        if(strcasecmp(firstCommand, "psm") == 0) { 
 	        	//Check that secondCommand is an integer
 	        	print_storage_map(ptr, atoll(secondCommand)); 
@@ -130,16 +134,26 @@ int main(int argc, char *argv[]) {
     }
 
     // printf("\n\n***End of main***\n");
-    LBAwrite(ptr, ptr->block_size, 0);
 	free(ptr);
 	ptr = NULL;
-	printf("Daemon Demon File System shutting down...\n");
+	printf("\033[31mDaemon Demon File System shutting down...\n");
 	//closePartitionSystem();
 	return 0;
 }
 
 void display_help(){
 
-	printf("\nListing Possible Commands:\n");
+	printf("\033[0m\n----------[ Single Argument Commands ]----------\n");
 
+	printf("\033[0m\n -help\t\t\t-- \033[32mYou are currently using this command.");
+	printf("\033[0m\n ls\t\t\t-- \033[32mLists all files within the current working directory.");
+	printf("\033[0m\n pwd\t\t\t-- \033[32mPrints the current working directory path.");
+
+	printf("\033[0m\n\n----------[ Double Argument Commands ]----------\n");
+
+	printf("\033[0m\n mkdir\t%%filename%%\t-- \033[32mCreates folder of name: '%%filename%%' in current working directory.");
+	printf("\033[0m\n psm\t%%number%%\t-- \033[32mPrints a map view of all used and free memory blocks. %%number%% specifies the newline breakpoint.");
+	printf("\033[0m\n cd\t%%filename%%\t-- \033[32mChanges Directory to specified '%%filename%%'. Only changes directories based on relative path.");
+	
+	printf("\n");
 }
