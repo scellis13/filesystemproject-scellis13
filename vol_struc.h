@@ -44,7 +44,7 @@ typedef struct directoryEntry {
 int create_volume(myVCB_ptr ptr, char * filename, int volumeSize, int blockSize);
 void init_freespace(myVCB_ptr ptr);
 void init_rtdir(myVCB_ptr ptr);
-int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type);
+int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type, int init);
 int get_setup_blocks(myVCB_ptr ptr, int blocks_requested, int block_size);
 
 #endif

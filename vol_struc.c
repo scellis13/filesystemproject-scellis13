@@ -21,7 +21,7 @@ int create_volume(myVCB_ptr ptr, char * filename, int volumeSize, int blockSize)
 	ptr->volumeSize = volumeSize;
 	ptr->block_size = blockSize;
 	ptr->lba_frsp = 1;			
-	ptr->lba_curdir = 0;		
+	ptr->lba_curdir = -1;		
 	ptr->lba_history_blocks = 2;
 	
 	init_freespace(ptr);
@@ -113,10 +113,10 @@ void init_freespace(myVCB_ptr ptr){
 
 void init_rtdir(myVCB_ptr ptr){
 	// printf("\n\ninit_rtdir: Initializing Root Directory.");
-	create_directory_entry(ptr, "~", 512, 0);
+	create_directory_entry(ptr, "~", 512, 0, 1);
 }
 
-int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type) {
+int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int entry_type, int init) {
 	int return_value = -1;
 
 	char * type_string = (entry_type == 0) ? "Folder" : "File";
@@ -195,11 +195,30 @@ int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int 
 		}
 	}
 
+	int rand_block_id = rand()%ptr->num_of_blocks;
+	if(init != 1){
+		
+		while(rand_block_id < 0){
+			rand_block_id = rand()%ptr->num_of_blocks;
+			for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
+				if(de_list[i].block_id == rand_block_id) {
+					rand_block_id = -1;
+					break;
+				}
+			}
+		}
 
-	de_list[frsp_ptr->total_directory_entries].block_id = frsp_ptr->total_directory_entries;
+		//printf("create_entry: Assigning new entry with random id (%d).\n", rand_block_id);
+	} else {
+		rand_block_id = 0; //Setting root directory to 0.
+	}
+	
+
+	de_list[frsp_ptr->total_directory_entries].block_id = rand_block_id;
 	de_list[frsp_ptr->total_directory_entries].block_position = block_start_position;
 	de_list[frsp_ptr->total_directory_entries].total_blocks_allocated = blocks_needed;
-	de_list[frsp_ptr->total_directory_entries].parent_id = ptr->lba_curdir;
+	int parent_id = (init == 0) ? ptr->lba_curdir : 0;
+	de_list[frsp_ptr->total_directory_entries].parent_id = parent_id;
 	int file_size = (entry_type == 0) ? -1 : size_bytes;
 	de_list[frsp_ptr->total_directory_entries].file_size = file_size;
 	de_list[frsp_ptr->total_directory_entries].entry_type = entry_type;
@@ -223,6 +242,11 @@ int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int 
 	free(de_list);
 	frsp_ptr = NULL;
 	de_list = NULL;
+
+	if(init == 1) { //Setting root directory values
+		ptr->lba_rtdir = rand_block_id;
+		ptr->lba_curdir = rand_block_id;
+	}
 
 	return return_value;
 }

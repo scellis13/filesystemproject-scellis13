@@ -42,7 +42,7 @@ void list_dir(myVCB_ptr ptr) {
 }
 
 void make_dir(myVCB_ptr ptr, char * dir_name) {
-	int success = create_directory_entry(ptr, dir_name, -1, 0);
+	int success = create_directory_entry(ptr, dir_name, -1, 0, 0);
 	if(success == -1) printf("make_dir: Too many entries than volume can handle. Please delete some files and try again.\n");
 	if(success == -2) printf("make_dir: Insufficient space. Enter command 'psm' to Print the Block Storage Map and view free space.\n");
 	if(success == -3) printf("make_dir: Entry already exists.\n");
@@ -351,6 +351,7 @@ void remove_entry(myVCB_ptr ptr, char * file_name){
 						de_list[k].block_position = de_list[k+1].block_position;
 						de_list[k].total_blocks_allocated = de_list[k+1].total_blocks_allocated;
 						de_list[k].parent_id = de_list[k+1].parent_id;
+						de_list[k].file_size = de_list[k+1].file_size;
 						de_list[k].entry_type = de_list[k+1].entry_type; //0 for folder, 1 for file
 						strcpy(de_list[k].fileName, de_list[k+1].fileName);
 						
@@ -370,6 +371,7 @@ void remove_entry(myVCB_ptr ptr, char * file_name){
 					de_list[k].block_position = de_list[k+1].block_position;
 					de_list[k].total_blocks_allocated = de_list[k+1].total_blocks_allocated;
 					de_list[k].parent_id = de_list[k+1].parent_id;
+					de_list[k].file_size = de_list[k+1].file_size;
 					de_list[k].entry_type = de_list[k+1].entry_type; //0 for folder, 1 for file
 					strcpy(de_list[k].fileName, de_list[k+1].fileName);
 				}
@@ -398,6 +400,7 @@ void remove_entry(myVCB_ptr ptr, char * file_name){
 					de_list[k].block_position = de_list[k+1].block_position;
 					de_list[k].total_blocks_allocated = de_list[k+1].total_blocks_allocated;
 					de_list[k].parent_id = de_list[k+1].parent_id;
+					de_list[k].file_size = de_list[k+1].file_size;
 					de_list[k].entry_type = de_list[k+1].entry_type; //0 for folder, 1 for file
 					strcpy(de_list[k].fileName, de_list[k+1].fileName);
 				}
@@ -493,7 +496,7 @@ void copy_to_linux(myVCB_ptr ptr, char * secondCommand){
 		}
 	}
 	if(found == 0) printf("copy_to_linux: Error. Specified file '%s' not found in current working directory.\n", secondCommand);
-
+	if(found == 1) printf("copy_to_linux: '%s' successfully copied into the linux file system.\n", secondCommand);
 	free(de_list);
 	de_list = NULL;
 
@@ -508,7 +511,7 @@ void copy_to_system(myVCB_ptr ptr, char * secondCommand){
 	
 	if(exists == 0) {
 
-		int de_position = create_directory_entry(ptr, secondCommand, size, 1);
+		int de_position = create_directory_entry(ptr, secondCommand, size, 1, 0);
 		//return -1 = Too many directory entries for volume.
 		//return -2 = Sufficient Space not available.
 		//return -3 = Filename exists in current working directory.
