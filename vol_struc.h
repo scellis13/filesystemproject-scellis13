@@ -5,6 +5,7 @@
 typedef struct freespace {
 	int blocks_free;
 	int total_directory_entries;
+	int lba_history_index;  //Index of the command history
 	int data_blocks_map[];
 } freespace, *freespace_ptr; //About 8 Bytes
 
@@ -19,10 +20,13 @@ typedef struct vcb {
 	int lba_frsp_blocks;	//How big the freespace struct is
 	int lba_dirnodes;		//Block Position that starts list of directory nodes
 	int lba_dirnodes_blocks;//How big the dirnode list is
-	int lba_data_offset;	//Offset to datablocks
-	int lba_rtdir; 			//Block Position of root directory
+	int lba_data_offset;	//Offset to datablocks (Starts at root directory)
+	int lba_rtdir; 			//Block ID of root directory
 	int lba_curdir;			//Root Directory Block ID
-	char volume_name[250];		//Name of the volume
+	int lba_history_pos;	//Offset to the position of Command History blocks.
+	int lba_history_blocks;	//How many blocks are dedicated to history.
+	int history_count;		//Records the number of commands recorded in history.
+	char volume_name[200];		//Name of the volume
 
 } myVCB, *myVCB_ptr;
 
@@ -31,6 +35,7 @@ typedef struct directoryEntry {
 	int block_position;
 	int total_blocks_allocated;
 	int parent_id;
+	int file_size;
 	int entry_type; //0 for folder, 1 for file
 	char fileName[55];
 

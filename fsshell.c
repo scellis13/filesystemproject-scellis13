@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
 	char user_command[100];
 	char buffer[100];
-	char firstCommand[6];
+	char firstCommand[10];
 	char secondCommand[55];
 
     while(1) {
@@ -66,6 +66,9 @@ int main(int argc, char *argv[]) {
         print_dir(ptr);
         printf("\033[0m$ ");
         gets(user_command);
+        
+        if(strlen(user_command) < 100) write_history(ptr, user_command);
+
         if(strcasecmp(user_command, "exit") == 0) break;
         memcpy(buffer, user_command, sizeof(buffer));
 
@@ -75,9 +78,9 @@ int main(int argc, char *argv[]) {
         
     	if(command != NULL){ //Two Argument Commands
         	*command = '\0';
-        	if(strlen(buffer) > 5){
-	        	printf("%s: Unable to execute command with first argument. Length must be <= 5 characters.\n", buffer);
-	        	printf("Enter '-help' for a list of valid commands.\n");
+        	if(strlen(buffer) > 10){
+	        	printf("%s: Unable to execute command with first argument. Length must be < 10 characters.\n", buffer);
+	        	printf("Enter 'help' for a list of valid commands.\n");
 	        	continue;
 	        } else {
 	        	memcpy(firstCommand, buffer, sizeof(firstCommand));
@@ -103,17 +106,35 @@ int main(int argc, char *argv[]) {
 	        	change_dir(ptr, secondCommand); 
 	        	continue; 
 	        }
+	        if(strcasecmp(firstCommand, "rm") == 0) {
+        		remove_entry(ptr, secondCommand);
+        		continue;	
+        	}
+        	if(strcasecmp(firstCommand, "cp2l") == 0) {
+        		copy_to_linux(ptr, secondCommand);
+        		continue;
+        	}
+        	if(strcasecmp(firstCommand, "cp2fs") == 0){
+        		copy_to_system(ptr, secondCommand);
+        		continue;
+        	}
+        	
 
         } else { //Single Argument Commands
 
-        	if(strlen(buffer) > 5){
-        		printf("%s: Unable to execute command with first argument. Length must be <= 5 characters.\n", buffer);
+        	if(strlen(buffer) >= 10){
+        		printf("%s: Unable to execute command with first argument. Length must be < 10 characters.\n", buffer);
         		continue;
         	} else {
         		memcpy(firstCommand, buffer, sizeof(firstCommand));
         	}
 
-        	if(strcasecmp(firstCommand, "-help") == 0) {
+        	if(strcasecmp(firstCommand, "history") == 0) {
+        		print_history(ptr);
+        		continue;
+        	}
+
+        	if(strcasecmp(firstCommand, "help") == 0) {
         		display_help();
         		continue;
         	}
@@ -126,10 +147,15 @@ int main(int argc, char *argv[]) {
         		printf("\n");
         		continue;
         	}
+        	if(strcasecmp(firstCommand, "print") == 0){
+        		print_all(ptr);
+        		continue;
+        	}
+
         }
 
 	    
-	    printf("%s: Invalid command. Enter '-help' for a list of valid commands.\n", user_command);
+	    printf("%s: Invalid command. Enter 'help' for a list of valid commands.\n", user_command);
 
     }
 
@@ -145,15 +171,22 @@ void display_help(){
 
 	printf("\033[0m\n----------[ Single Argument Commands ]----------\n");
 
-	printf("\033[0m\n -help\t\t\t-- \033[32mYou are currently using this command.");
+	printf("\033[0m\n exit\t\t\t-- \033[32mExits the user from the Daemon Demon File System.");
+	printf("\033[0m\n help\t\t\t-- \033[32mYou are currently using this command.");
+	printf("\033[0m\n history\t\t-- \033[32mPrints a history of commands used in the shell.");
 	printf("\033[0m\n ls\t\t\t-- \033[32mLists all files within the current working directory.");
 	printf("\033[0m\n pwd\t\t\t-- \033[32mPrints the current working directory path.");
+	printf("\033[0m\n print\t\t\t-- \033[32mPrints all directory entries.");
+	
 
 	printf("\033[0m\n\n----------[ Double Argument Commands ]----------\n");
 
+	printf("\033[0m\n cd\t%%filename%%\t-- \033[32mChanges Directory to specified '%%filename%%'. Only changes directories based on relative path.");
+	printf("\033[0m\n cp2l\t%%filename%%\t-- \033[32mCopies a file specified by %%filename%%, from the test file system to the linux file system.");
+	printf("\033[0m\n cp2fs\t%%filename%%\t-- \033[32mCopies a file specified by %%filename%%, from the linux file system to the test file system.");
 	printf("\033[0m\n mkdir\t%%filename%%\t-- \033[32mCreates folder of name: '%%filename%%' in current working directory.");
 	printf("\033[0m\n psm\t%%number%%\t-- \033[32mPrints a map view of all used and free memory blocks. %%number%% specifies the newline breakpoint.");
-	printf("\033[0m\n cd\t%%filename%%\t-- \033[32mChanges Directory to specified '%%filename%%'. Only changes directories based on relative path.");
-	
-	printf("\n");
+	printf("\033[0m\n rm\t%%filename%%\t-- \033[32mRemoves directory entry specified by %%filename%%. Will prompt YES/NO if removal requested is a directory.");
+	//cp2fs - Copies a file from the Linux file system to the test file system
+	printf("\n\n");
 }

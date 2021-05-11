@@ -22,7 +22,8 @@ int create_volume(myVCB_ptr ptr, char * filename, int volumeSize, int blockSize)
 	ptr->block_size = blockSize;
 	ptr->lba_frsp = 1;			
 	ptr->lba_curdir = 0;		
-
+	ptr->lba_history_blocks = 2;
+	
 	init_freespace(ptr);
 
 	init_rtdir(ptr);
@@ -86,7 +87,7 @@ void init_freespace(myVCB_ptr ptr){
 
 	frsp_ptr->blocks_free = sum_of_blocks;
 	frsp_ptr->total_directory_entries = 0;
-
+	frsp_ptr->lba_history_index = 0;
 
 
 	
@@ -96,6 +97,7 @@ void init_freespace(myVCB_ptr ptr){
 		(frsp_ptr)->data_blocks_map[i] = 0; //0 is free, 1 is used
 	}
 
+	
 
 	// printf("\n\nTotal Elements Stored So Far:");
 	// printf("\n\tTotal VCB Blocks: %d", 1);
@@ -158,11 +160,17 @@ int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int 
 			}
 			frsp_ptr->blocks_free = frsp_ptr->blocks_free - blocks_needed;
 		} else {
+			free(frsp_ptr);
+			frsp_ptr = NULL;
 			return -2; //Sufficient Space not available
 		}
 	}
 
-	if(frsp_ptr->total_directory_entries >= ptr->total_data_blocks) return -1; //Too many Directory Entries for Volume
+	if(frsp_ptr->total_directory_entries >= ptr->total_data_blocks) {
+		free(frsp_ptr);
+		frsp_ptr = NULL;
+		return -1; //Too many Directory Entries for Volume
+	}
 
 	// printf("\n\ncreate_directory_entry: Attempting to create directory entry list:");
 	// printf("\n\tSize of Directory Entry: %d", sizeof(directoryEntry));
@@ -177,13 +185,32 @@ int create_directory_entry(myVCB_ptr ptr, char * file_name, int size_bytes, int 
 	LBAread(de_list, ptr->lba_dirnodes_blocks, ptr->lba_dirnodes);
 
 
+	for(int i = 0; i < frsp_ptr->total_directory_entries; i++){
+		if((strcasecmp(file_name, de_list[i].fileName) == 0) && (ptr->lba_curdir == de_list[i].parent_id)){
+			free(frsp_ptr);
+			free(de_list);
+			frsp_ptr = NULL;
+			de_list = NULL;
+			return -3; //File already exists.
+		}
+	}
+
 
 	de_list[frsp_ptr->total_directory_entries].block_id = frsp_ptr->total_directory_entries;
 	de_list[frsp_ptr->total_directory_entries].block_position = block_start_position;
 	de_list[frsp_ptr->total_directory_entries].total_blocks_allocated = blocks_needed;
 	de_list[frsp_ptr->total_directory_entries].parent_id = ptr->lba_curdir;
+	int file_size = (entry_type == 0) ? -1 : size_bytes;
+	de_list[frsp_ptr->total_directory_entries].file_size = file_size;
 	de_list[frsp_ptr->total_directory_entries].entry_type = entry_type;
 	strcpy(de_list[frsp_ptr->total_directory_entries].fileName, file_name);
+
+	//Clears the requested data blocks from any previous data.
+	if(entry_type == 1) {
+		void * wipeBuffer = malloc(blocks_needed * ptr->block_size);
+		LBAwrite(wipeBuffer, blocks_needed, ptr->lba_data_offset+block_start_position);
+		free(wipeBuffer);
+	}
 
 	LBAwrite(de_list, ptr->lba_dirnodes_blocks, ptr->lba_dirnodes);
 
@@ -213,7 +240,9 @@ int get_setup_blocks(myVCB_ptr ptr, int blocks_requested, int block_size){
 		// printf("\n\tTotal Size of Freespace (bytes): %d", total_freespace_bytes);
 		int total_freespace_blocks = ceil( ((double) total_freespace_bytes)/block_size );
 		ptr->lba_frsp_blocks = total_freespace_blocks;
-		ptr->lba_dirnodes = 1 + total_freespace_blocks;//0 VCB, 1 FS + FS_BLOCKS
+		ptr->lba_history_pos = 1 + total_freespace_blocks;
+		ptr->lba_dirnodes = 1 + total_freespace_blocks + 2;//0 VCB, 1 FS + FS_BLOCKS + 2 History
+		
 		// printf("\n\tTotal Size of Freespace (blocks): %d", total_freespace_blocks);
 
 		// printf("\n\n\tCalculating Required Blocks for Directory Entry List:");
@@ -226,7 +255,7 @@ int get_setup_blocks(myVCB_ptr ptr, int blocks_requested, int block_size){
 		ptr->lba_data_offset = ptr->lba_dirnodes + total_entry_list_blocks;
 		// printf("\n\tSize of Directory Entry List (blocks): %d", total_entry_list_blocks);
 
-		int total_setup_blocks = total_freespace_blocks + total_entry_list_blocks + 1;
+		int total_setup_blocks = total_freespace_blocks + total_entry_list_blocks + 1 + 2;
 		// printf("\n\nTotal Blocks Required for Initialization: %d", total_setup_blocks);
 
 		return total_setup_blocks;

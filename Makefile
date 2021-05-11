@@ -37,7 +37,7 @@
 ROOTNAME=fsshell
 HW=
 FOPTION=
-RUNOPTIONS=SampleVolume 50000 512
+RUNOPTIONS=SampleVolume 1000000 512
 CC=gcc
 CFLAGS= -g -I.
 LIBS =pthread
